@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Task Manager</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  h1 {
+    text-align: center;
+  }
+  form {
+    margin-bottom: 20px;
+  }
+  input, textarea {
+    width: 100%;
+    padding: 8px;
+    margin: 6px 0;
+    box-sizing: border-box;
+  }
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  li {
+    background: #f4f4f4;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-left: 5px solid #2196f3;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  li.completed {
+    border-left-color: green;
+    text-decoration: line-through;
+    color: gray;
+  }
+  .task-info {
+    flex-grow: 1;
+    margin-right: 10px;
+  }
+  button {
+    margin-left: 5px;
+  }
+</style>
+</head>
+<body>
+<h1>Task Manager</h1>
+<form id="taskForm">
+  <input type="text" id="title" placeholder="Task Title" required />
+  <textarea id="description" placeholder="Task Description" required></textarea>
+  <input type="date" id="dueDate" required />
+  <button type="submit">Add Task</button>
+</form>
+<ul id="taskList"></ul>
+
+<script>
+  // Load tasks from localStorage or initialize empty array
+  let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+  const taskForm = document.getElementById('taskForm');
+  const taskList = document.getElementById('taskList');
+
+  // Save tasks to localStorage
+  function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
+
+  // Render all tasks to the DOM
+  function renderTasks() {
+    taskList.innerHTML = '';
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.className = task.completed ? 'completed' : '';
+
+      const taskInfo = document.createElement('div');
+      taskInfo.className = 'task-info';
+      taskInfo.innerHTML = 
+        `<strong>${task.title}</strong> - ${task.description} <br/> Due: ${task.dueDate}`;
+      li.appendChild(taskInfo);
+
+      // Checkbox to mark complete/incomplete
+      const completeCheckbox = document.createElement('input');
+      completeCheckbox.type = 'checkbox';
+      completeCheckbox.checked = task.completed;
+      completeCheckbox.addEventListener('change', () => {
+        tasks[index].completed = !tasks[index].completed;
+        saveTasks();
+        renderTasks();
+      });
+      li.appendChild(completeCheckbox);
+
+      // Edit button
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', () => {
+        document.getElementById('title').value = task.title;
+        document.getElementById('description').value = task.description;
+        document.getElementById('dueDate').value = task.dueDate;
+        taskForm.dataset.editIndex = index;
+        taskForm.querySelector('button').textContent = 'Update Task';
+      });
+      li.appendChild(editBtn);
+
+      // Delete button
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', () => {
+        tasks.splice(index, 1);
+        saveTasks();
+        renderTasks();
+      });
+      li.appendChild(delBtn);
+
+      taskList.appendChild(li);
+    });
+  }
+
+  // Handle form submit for adding or editing tasks
+  taskForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const title = document.getElementById('title').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const dueDate = document.getElementById('dueDate').value;
+    if (!title || !description || !dueDate) return;
+
+    if (taskForm.dataset.editIndex !== undefined) {
+      const index = taskForm.dataset.editIndex;
+      tasks[index] = { ...tasks[index], title, description, dueDate };
+      delete taskForm.dataset.editIndex;
+      taskForm.querySelector('button').textContent = 'Add Task';
+    } else {
+      tasks.push({ title, description, dueDate, completed: false });
+    }
+    saveTasks();
+    renderTasks();
+    taskForm.reset();
+  });
+
+  // Reminder for tasks due within next 1 day
+  function checkReminders() {
+    const now = new Date();
+    tasks.forEach(task => {
+      if (!task.completed) {
+        const due = new Date(task.dueDate);
+        const diff = (due - now) / (1000 * 60 * 60 * 24);
+        if (diff >= 0 && diff < 1) {
+          alert(`Reminder: Task "${task.title}" is due soon!`);
+        }
+      }
+    });
+  }
+
+  renderTasks();
+  checkReminders();
+</script>
+</body>
+</html>
